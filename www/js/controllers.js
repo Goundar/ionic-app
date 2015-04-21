@@ -1,6 +1,6 @@
 angular.module('app')
 
-.controller('LoadingCtrl', function($scope, $state, $ionicHistory, AuthSrv, OnboardingSrv, GeolocationPlugin, DialogPlugin, WebIntentPlugin){
+.controller('LoadingCtrl', function($scope, $state, $ionicHistory, AuthSrv, OnboardingSrv, GeolocationPlugin, DialogPlugin, WebIntentPlugin, $ionicPlatform, $cordovaGeolocation){
   'use strict';
   var data = {}, fn = {};
   $scope.data = data;
@@ -10,33 +10,72 @@ angular.module('app')
 
   fn.init = function(){
     data.retry = false;
-    GeolocationPlugin.getCurrentPosition().then(function(pos){
-      $ionicHistory.nextViewOptions({
-        disableAnimate: true,
-        disableBack: true,
-        historyRoot: true
-      });
 
-      var onboardingProvider = OnboardingSrv.getProvider();
-      if(onboardingProvider === 'email'){
-        $state.go('fillprofile');
-      } else if(onboardingProvider){
-        $state.go('createaccountwithprofile');
-      } else if(AuthSrv.isLogged()){
-        $state.go('app.live.users');
-      } else {
-        $state.go('welcome');
-      }
-    }, function(err){
-      data.retry = true;
-      DialogPlugin.confirm('Impossible d\'accéder à votre géolocalisation. Merci d\'activer le gps').then(function(res){
-        if(res){
-          WebIntentPlugin.startActivity({
-            action: WebIntentPlugin.android.Settings.ACTION_LOCATION_SOURCE_SETTINGS
+    $ionicPlatform.ready(function() {
+      var posOptions = {timeout: 10000, enableHighAccuracy: false};
+        $cordovaGeolocation
+          .getCurrentPosition(posOptions)
+          .then(function (position) {
+            console.log(position);
+            $ionicHistory.nextViewOptions({
+              disableAnimate: true,
+              disableBack: true,
+              historyRoot: true
+            });
+
+            var onboardingProvider = OnboardingSrv.getProvider();
+            if(onboardingProvider === 'email'){
+              $state.go('fillprofile');
+            } else if(onboardingProvider){
+              $state.go('createaccountwithprofile');
+            } else if(AuthSrv.isLogged()){
+              $state.go('app.live.users');
+            } else {
+              $state.go('welcome');
+            }
+
+          }, function(err) {
+            data.retry = true;
+            DialogPlugin.confirm('Impossible d\'accéder à votre géolocalisation. Merci d\'activer le gps').then(function(res){
+              if(res){
+                WebIntentPlugin.startActivity({
+                  action: WebIntentPlugin.android.Settings.ACTION_LOCATION_SOURCE_SETTINGS
+                });
+              }
+            });
           });
-        }
-      });
     });
+
+
+
+
+    // GeolocationPlugin.getCurrentPosition().then(function(pos){
+    //   $ionicHistory.nextViewOptions({
+    //     disableAnimate: true,
+    //     disableBack: true,
+    //     historyRoot: true
+    //   });
+    //
+    //   var onboardingProvider = OnboardingSrv.getProvider();
+    //   if(onboardingProvider === 'email'){
+    //     $state.go('fillprofile');
+    //   } else if(onboardingProvider){
+    //     $state.go('createaccountwithprofile');
+    //   } else if(AuthSrv.isLogged()){
+    //     $state.go('app.live.users');
+    //   } else {
+    //     $state.go('welcome');
+    //   }
+    // }, function(err){
+    //   data.retry = true;
+    //   DialogPlugin.confirm('Impossible d\'accéder à votre géolocalisation. Merci d\'activer le gps').then(function(res){
+    //     if(res){
+    //       WebIntentPlugin.startActivity({
+    //         action: WebIntentPlugin.android.Settings.ACTION_LOCATION_SOURCE_SETTINGS
+    //       });
+    //     }
+    //   });
+    // });
   };
 
   fn.init();
@@ -95,4 +134,3 @@ angular.module('app')
   'use strict';
   $scope.badges = TabSrv.badges;
 });
-
